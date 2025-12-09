@@ -1,0 +1,118 @@
+You are absolutely right to ask for this. The development process has been messy, with many back-and-forth changes. This document will serve as a definitive, clean "text dump" of the entire project history, its logic, and its final V1 state, as requested.
+
+This is intended to be a complete project summary.
+
+---
+
+### **Project FLOW: V1 - Final Technical Report**
+
+#### **1. Project Overview**
+
+**Project Name:** FLOW
+**Version:** 1.0 (AI-Assisted)
+**Goal:** A desktop productivity application for Windows that tracks user activity, classifies it as productive or distracting, and provides a daily focus score.
+**Core Tech Stack (V1):**
+* **Language:** Python
+* **GUI:** `FreeSimpleGUI` (a wrapper for `tkinter`)
+* **Core Libraries:** `threading`, `psutil`, `pygetwindow`, `win32process`
+* **Data/Stats:** `sqlite3`, `pandas`
+* **Lightweight AI:** `scikit-learn`, `joblib`
+
+---
+
+#### **2. Final V1 Architecture**
+
+To solve UI lag, the app uses a **multi-threaded architecture**:
+
+1.  **Main Thread (main.py):**
+    * Runs the `FreeSimpleGUI` event loop (`window.read()`).
+    * Is extremely lightweight. Its only job is to receive messages from other threads and update UI elements (like text and buttons).
+    * It does **zero** heavy lifting (no I/O, no AI, no complex calculations).
+
+2.  **Fast Tracker Thread (Worker 1):**
+    * Runs in a tight loop (every 0.5s).
+    * Gets the active window title (`pygetwindow`).
+    * Runs the "fast" classifier (`classify_by_title_only`) which uses `config.json` rules and the AI model as a fallback.
+    * Sends a `'-UPDATE_APP-'` message to the UI every 0.5s.
+    * Sends a single `'-DISTRACTION_EVENT-'` message *only* when the user first enters a distraction *and* `is_studying` is `True` ("Silent Tracking").
+    * Sends a `'-PROMPT_STUDY_MODE-'` message if it detects a lecture while not in Study Mode.
+
+3.  **Slow Logging Thread (Worker 2):**
+    * Runs in a slow loop (every 5.0s) to save resources.
+    * Gets the window title/handle from the fast thread.
+    * Performs "heavy" operations:
+        * Gets the `.exe` name (slow `psutil` call).
+        * Runs the "full" classifier (`classify_activity`) to get the most accurate category.
+        * Logs the result to the `flow_data.db` (disk I/O).
+        * Calculates all stats by reading the database (`focus_engine.calculate_daily_stats`).
+        * Calculates the predicted score.
+    * Sends a `'-STATS_UPDATE-'` message to the UI with the new scores and times.
+
+---
+
+### 3. Final V1 File Manifest (7 Files)
+
+This is the complete set of files required to run and package the final V1.
+
+#### 1. `main.py` (v8.2 - Final)
+* **Purpose:** The main application. Creates the UI, starts the threads, and runs the main event loop to handle button clicks and messages from threads.
+* **Key Logic Blocks:**
+    * `resource_path()`: A helper function to find data files (`ai_model.joblib`) after being packaged into an `.exe` (using `sys._MEIPASS`).
+    * `classify_by_title_only()`: The **fast classifier** for the UI. It checks rules in a specific order: 1) `IGNORE_TITLES`, 2) `PRODUCTIVE_KEYWORDS`, 3) `STUDY_KEYWORDS`, 4) `DISTRACTION_LEVELS`, 5) `if is_studying:`, 6) AI prediction.
+    * `classify_activity()`: The **slow classifier** for the database. It uses the same logic as the fast one but *also* checks the `PROCESS_RULES` (like `Code.exe`) first for maximum accuracy.
+    * `fast_tracker_thread()`: The thread that runs `classify_by_title_only` and sends UI updates. Contains the "Silent Tracking" fix (popups only fire `if is_studying:`).
+    * `slow_logging_thread()`: The thread that runs `classify_activity`, logs to the DB, and calculates stats.
+    * `create_..._window()`: Functions that build the "History," "Settings," and "How to Use" modal windows.
+    * **Main Event Loop (`while True:`)**: Handles all UI events (`-PAUSE_TOGGLE-`, `-STUDY_TOGGLE-`, `-STATS_UPDATE-`, etc.) and the "Snooze" logic fix (snooze is only cleared by *manual* user action, not by alt-tabbing).
+
+#### 2. `focus_engine.py` (v2.6)
+* **Purpose:** The "stats brain" of the app. It *only* reads the database and does math.
+* **Key Logic Blocks:**
+    * `get_today_data()`: Reads the `flow_data.db` and returns all of today's log entries as a Pandas DataFrame.
+    * `calculate_daily_stats()`: Counts all "Productive," "Productive (AI)," "Studying," and "Distraction" events. It calculates the `score`, `prod_time_s`, `dist_time_s`, and `neut_time_s`.
+    * `calculate_predicted_score()`: A simple projection model. It takes the user's current focus ratio and projects it over an 8-hour workday to give an "end-of-day" score prediction.
+    * `get_weekly_stats()`: Gets data from the last 7 days and groups it by day to populate the "History" window.
+
+#### 3. `data_manager.py` (v1.1)
+* **Purpose:** The database "worker." This is the only file that writes to the database.
+* **Key Logic Blocks:**
+    * `init_database()`: Creates the `flow_data.db` file and the `activity_log` table if they don't exist.
+    * `log_event()`: Called by the "slow" thread. It takes a category and app name and inserts them into the `activity_log` table with a new timestamp.
+
+#### 4. `config_manager.py` (v1.1)
+* **Purpose:** Reads and writes the `config.json` file.
+* **Key Logic Blocks:**
+    * `get_default_config()`: **Critical Fix.** Contains a *full, complete* default configuration. When a new user runs the `.exe`, this function is used to create their `config.json` file, so the app works correctly out-of-the-box.
+    * `load_config()`: Tries to read `config.json`. If it fails or the file is missing, it calls `get_default_config()` to create one.
+    * `save_config()`: Called by the "Settings" window to overwrite `config.json` with the user's new rules.
+
+#### 5. `config.json`
+* **Purpose:** A human-readable file that stores all the user's custom rules. This file is **intentionally** left out of the `.exe` bundle (using `load_config`) so that the user can edit it, and so the `.exe` can create a new one. *[Correction based on final packaging steps]*: This file is **bundled** by PyInstaller, but `config_manager.py` is designed to create a *new* one in the user's directory if it can't find one, which is how new users get their own copy.
+
+#### 6. `ai_trainer.py` (v1.3)
+* **Purpose:** A **developer-only script**. This is **NOT** included in the final `.exe`.
+* **Key Logic:** Contains a large dataset (70+ examples) of productive and distracting titles. It uses `scikit-learn` to train a Naive Bayes classifier on this data. It then runs a cross-validation test to report its own accuracy before saving the final, fully-trained model to `ai_model.joblib`.
+
+#### 7. `ai_classifier.py` (v1.1)
+* **Purpose:** The "AI" module that `main.py` imports.
+* **Key Logic Blocks:**
+    * `resource_path()`: **Critical Fix.** This function finds the `ai_model.joblib` file. It's smart enough to find it in the local folder (when running `python main.py`) and in the secret temp folder (when running the packaged `.exe`).
+    * `load_model()`: Loads the `ai_model.joblib` file into memory *once* when the app starts.
+    * `predict_category()`: A simple, fast function that takes a window title and returns the AI's prediction (1 for Productive, 0 for Distraction).
+
+---
+
+### 4. Final V1 Feature Set
+
+* **App Tracking:** Runs in the background, identifying the active window `.exe` and title.
+* **Multi-Threaded UI:** A fast, responsive UI that never lags, with all heavy work done on background threads.
+* **Silent Tracking:** In "Relaxing Mode," all tracking is done silently for the end-of-day score. **Popups are disabled.**
+* **Study Mode:** A high-focus mode. When enabled, all non-productive/non-study apps will trigger a popup alert.
+* **Pause/Resume:** A button to freeze all logging and tracking.
+* **Smart Lecture Prompt:** Detects "lecture-like" titles on YouTube (when not in Study Mode) and prompts the user to switch.
+* **Smart Snooze:** If the user clicks "No" on a lecture prompt, it snoozes that *specific* video title until the user manually changes modes.
+* **AI Classification:** Uses a pre-trained `scikit-learn` model to "intelligently" classify any app/website *not* defined in the user's rules.
+* **Score Prediction:** Shows a live, predicted "End-of-Day" score based on current focus trends.
+* **History Window:** Displays a 7-day chart of past focus scores.
+* **Settings Window:** A full, multi-tab UI to add, edit, and remove all custom rules.
+* **"How to Use" Window:** An onboard user guide.

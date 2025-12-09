@@ -1,0 +1,21 @@
+# Ignore the virtual environment (thousands of useless files)
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Ignore the compiled .exe folders (too big for code storage)
+build/
+dist/
+*.spec
+MAIN PACKAGED APP/
+
+# Ignore the database (contains your personal logs)
+*.db
+flow_data.db
+
+# Ignore editor settings
+.vscode/
+.idea/
+
+*.mp4
