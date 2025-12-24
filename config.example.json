@@ -1,0 +1,83 @@
+{
+  "PROCESS_RULES": {
+    "Code.exe": "Productive",
+    "pycharm64.exe": "Productive",
+    "idea64.exe": "Productive",
+    "WINWORD.EXE": "Productive",
+    "EXCEL.EXE": "Productive",
+    "powershell.exe": "Productive",
+    "Postman.exe": "Productive",
+    "GitHub Desktop.exe": "Productive",
+    "Spotify.exe": "Distraction-Low",
+    "Discord.exe": "Distraction-Medium",
+    "chrome.exe": "Check-Title",
+    "msedge.exe": "Check-Title",
+    "firefox.exe": "Check-Title"
+  },
+  "PRODUCTIVE_KEYWORDS": [
+    "visual studio code",
+    "pycharm",
+    "google gemini",
+    "docs.google.com",
+    "stackoverflow.com",
+    "github.com",
+    "geeksforgeeks",
+    "w3schools",
+    "tutorialspoint",
+    "medium.com"
+  ],
+  "DISTRACTION_LEVELS": {
+    "Low": [
+      "Apple Music"
+    ],
+    "Medium": [
+      "- youtube",
+      "reddit -",
+      "twitter",
+      " x ",
+      "facebook",
+      "instagram",
+      "9gag"
+    ],
+    "High": [
+      "porn",
+      "xvideos",
+      "phub"
+    ]
+  },
+  "STUDY_KEYWORDS": [
+    "dbms",
+    "toc",
+    "data structures",
+    "dsa",
+    "algorithms",
+    "operating systems",
+    "os",
+    "computer networks",
+    "cn",
+    "machine learning",
+    "artificial intelligence",
+    "ai",
+    "sql tutorial",
+    "java tutorial",
+    "c++ tutorial",
+    "python tutorial",
+    "javascript tutorial",
+    "lecture",
+    "tutorial",
+    "course",
+    "mit",
+    "freecodecamp",
+    "crash course",
+    "full course",
+    "study with me",
+    "heapsort",
+    "bellman ford"
+  ],
+  "IGNORE_TITLES": [
+    "task switching",
+    "search",
+    "start",
+    "new tab"
+  ]
+}

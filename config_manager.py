@@ -105,9 +105,20 @@ def load_config():
     This is what the app calls on startup.
     """
     if not os.path.exists(CONFIG_FILE):
-        print(f"Warning: {CONFIG_FILE} not found. Creating default.")
-        save_config(get_default_config())
+        print(f"Warning: {CONFIG_FILE} not found. Checking for defaults.")
+        # Try to load from config.example.json first
+        if os.path.exists("config.example.json"):
+             try:
+                with open("config.example.json", 'r') as f:
+                    default_data = json.load(f)
+                save_config(default_data) # Create the real config file
+                return default_data
+             except:
+                 pass # Fallback to hardcoded defaults
         
+        print("Creating default config from internal defaults.")
+        save_config(get_default_config())
+
     try:
         with open(CONFIG_FILE, 'r') as f:
             config_data = json.load(f)

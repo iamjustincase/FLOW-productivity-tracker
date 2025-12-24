@@ -1,4 +1,4 @@
-# main.py (Version 8.2 - Final V1 Package)
+# main.py (Version 1.8.2 - Final V1 Package)
 
 # --- Utility: Import necessary libraries ---
 import FreeSimpleGUI as sg     # Reason: The GUI library
@@ -734,7 +734,7 @@ layout = [
 ]
 
 # Create the main window
-window = sg.Window("FLOW Dashboard", layout, finalize=True, size=(400, 600)) 
+window = sg.Window("FLOW Dashboard", layout, finalize=True, size=(400, 600), icon=resource_path(os.path.join('assets', 'logo.ico')))
 
 # --- Start The Threads ---
 # These run in the background. 'daemon=True' means they will
@@ -746,8 +746,6 @@ threading.Thread(target=slow_logging_thread, args=(window,), daemon=True).start(
 # This is the "heart" of the app. It waits for user clicks
 # or messages from the background threads.
 while True:
-    # This line "reads" events. It's the only line that can
-    # update the UI.
     event, values = window.read()
 
     # --- Event: User clicks 'Exit' or 'X' ---

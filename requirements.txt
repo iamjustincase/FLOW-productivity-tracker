@@ -1,0 +1,6 @@
+FreeSimpleGUI
+pygetwindow
+psutil
+pywin32
+scikit-learn
+joblib

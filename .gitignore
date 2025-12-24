@@ -19,3 +19,6 @@ flow_data.db
 .idea/
 
 *.mp4
+
+# Ignore local config
+config.json
