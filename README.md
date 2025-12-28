@@ -6,10 +6,10 @@
 
 FLOW is a desktop productivity tracker built in Python that monitors active window titles and processes to classify user activity as **Productive**, **Distracting**, or **Neutral**. It features a real-time dashboard, a daily focus score, and an AI-powered classification engine.
 
-## Demo
+## Demo 
+(*Click the image below to watch the demo video.*)
 
 [![Watch the Demo](https://img.youtube.com/vi/vXpPmesqkN8/0.jpg)](https://youtu.be/vXpPmesqkN8)
-*Click the image above to watch the demo video.*
 
 ## Features
 
