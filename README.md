@@ -79,3 +79,7 @@ The application uses a **Tiered Multi-Threaded Architecture**:
 *   `config_manager.py`: Configuration management.
 *   `assets/`: Icons and resources.
 *   `docs/`: Project analysis and reports.
+
+## License
+This project is licensed under the MIT License.
+
