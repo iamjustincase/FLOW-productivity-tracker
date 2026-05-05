@@ -1,4 +1,4 @@
-# focus_engine.py (Version 2.6 - Added Score Prediction)
+# focus_engine.py (Version 2.7 - Added AI Category Support)
     
 # --- Imports ---
 import sqlite3

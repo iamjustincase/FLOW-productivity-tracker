@@ -9,6 +9,8 @@ import psutil                  # Reason: To get the .exe name from a process ID
 import win32process            # Reason: To get the process ID (PID) from a window
 import os                      # Reason: To get our own PID for self-checking
 import sys                     # Reason: To check if we are in "packaged" mode.
+import re                      # Reason: For word-boundary matching
+
 
 # --- Utility: Import our helper files ---
 import data_manager            # Reason: Handles all database saving/loading
@@ -96,18 +98,29 @@ def classify_by_title_only(window_title):
     if title_low in IGNORE_TITLES:
         return "Neutral"
 
-    # --- Classification Logic ---
-    # 2. Check Productive Keywords (Fastest, most reliable)
-    for keyword in PRODUCTIVE_KEYWORDS:
+    # --- SAFETY CHECK: High-Severity Distractions First ---
+    # This prevents 'adult videos' from matching 'os' (study) or AI false positives
+    for keyword in DISTRACTION_LEVELS.get("High", []):
         if keyword in title_low:
+             return "Distraction-High"
+
+    # --- Classification Logic ---
+    # 2. Check Productive Keywords (Using Word Boundaries for short ones)
+    for keyword in PRODUCTIVE_KEYWORDS:
+        if len(keyword) <= 3:
+            if re.search(rf"\b{re.escape(keyword)}\b", title_low):
+                return "Productive"
+        elif keyword in title_low:
             return "Productive"
 
-    # --- # NEW LOGIC FIX ---
-    # 3. Check Study Keywords (e.g., "dsa", "heapsort algorithm")
-    # This MUST come before the AI check.
+    # 3. Check Study Keywords (Using Word Boundaries for 'os', 'ai', etc.)
     for keyword in STUDY_KEYWORDS:
-        if keyword in title_low:
-            return "Studying" # It's a study topic, so it's good.
+        if len(keyword) <= 3:
+            # Word boundary check prevents "videOS" matching "os"
+            if re.search(rf"\b{re.escape(keyword)}\b", title_low):
+                return "Studying"
+        elif keyword in title_low:
+            return "Studying"
 
     # 4. Check Medium Distractions (e.g., YouTube)
     is_medium_distraction = False
@@ -117,32 +130,27 @@ def classify_by_title_only(window_title):
             break
             
     if is_medium_distraction:
-        # We already checked for "Studying" keywords.
-        # If it's a "Medium" distraction and *not* "Studying",
-        # then it's a distraction *unless* it's a lecture
-        # we haven't categorized, so we show the prompt.
         if is_studying:
             return "Distraction-Medium"
         else:
-            # Check if it *looks* like a lecture (to be safe)
+            # Re-check Study words with boundaries for prompt
             is_lecture = False
             for study_word in STUDY_KEYWORDS:
-                if study_word in title_low:
-                    is_lecture = True
-                    break
+                if len(study_word) <= 3:
+                    if re.search(rf"\b{re.escape(study_word)}\b", title_low):
+                        is_lecture = True; break
+                elif study_word in title_low:
+                    is_lecture = True; break
             
             if is_lecture:
                 if not prompt_is_showing and window_title != snoozed_lecture_title:
-                    return "Prompt-Study-Mode" # Trigger the popup
+                    return "Prompt-Study-Mode"
                 else:
-                    return "Neutral" # It's a lecture, but we're snoozing it
+                    return "Neutral"
             else:
-                return "Distraction-Medium" # It's just a distraction
+                return "Distraction-Medium"
 
-    # 5. Check High/Low Distractions
-    for keyword in DISTRACTION_LEVELS.get("High", []):
-        if keyword in title_low:
-            return "Distraction-High"
+    # 5. Check Low Distractions
     for keyword in DISTRACTION_LEVELS.get("Low", []):
         if keyword in title_low:
             return "Distraction-Low"
@@ -151,18 +159,20 @@ def classify_by_title_only(window_title):
     if is_studying:
         return "Distraction-Low"
         
-    # --- # AI FIX ---
-    # 7. If NO rules matched, ask the AI model.
-    ai_prediction = ai_classifier.predict_category(window_title)
-    
-    if ai_prediction == 1:
-        # AI thinks it's productive.
-        print(f"AI classified '{window_title}' as Productive.")
-        return "Productive" # <-- THIS IS THE FIX (was "Neutral")
-    elif ai_prediction == 0:
-        # AI thinks it's a distraction.
-        print(f"AI classified '{window_title}' as Distraction.")
-        return "Distraction-Low" 
+    # --- # AI FIX v2 (INTELLIGENT GATING) ---
+    # 7. Only ask the AI if title is substantial (> 5 chars)
+    if len(title_low.strip()) > 5:
+        ai_prediction = ai_classifier.predict_category(window_title)
+        
+        if ai_prediction == 1:
+            print(f"AI classified '{window_title}' as Productive.")
+            return "Productive"
+        elif ai_prediction == 0:
+            print(f"AI classified '{window_title}' as Distraction.")
+            return "Distraction-Low"
+        elif ai_prediction == 2:
+            # New Neutral class from AI
+            return "Neutral"
 
     # 8. Default: It's just a neutral app
     return "Neutral"
@@ -704,6 +714,7 @@ activity_column = [
     [
         sg.Text("Mode: Relaxing ☕", key='-MODE_TEXT-', font=("Helvetica", 12)),
         sg.Push(), # Pushes the button to the right
+        sg.Button("Report AI", key='-REPORT_AI-', button_color=('white', '#6c757d')),
         sg.Button("Start Study Mode", key='-STUDY_TOGGLE-')
     ],
 ]
@@ -848,6 +859,34 @@ while True:
         else:
             window['-MODE_TEXT-'].update("Mode: Relaxing ☕")
             window['-STUDY_TOGGLE-'].update("Start Study Mode")
+
+    # --- Event: User clicks 'Report AI' ---
+    if event == '-REPORT_AI-':
+        # Get the latest title safely
+        with activity_lock:
+            report_title = current_app_title
+        
+        if not report_title:
+             sg.popup("No active window to report!", title="Report AI")
+        else:
+            # 1. Ask for the correct category
+            choices = ["Productive", "Distraction", "Cancel"]
+            layout_report = [
+                [sg.Text(f"Current Window:\n'{report_title}'")],
+                [sg.Text("What is the correct category?")],
+                [sg.Button("Productive", button_color=('white', 'green')), 
+                 sg.Button("Distraction", button_color=('white', 'red')),
+                 sg.Button("Cancel")]
+            ]
+            win_report = sg.Window("Report Misclassification", layout_report, modal=True)
+            ev_report, _ = win_report.read()
+            win_report.close()
+
+            if ev_report in ["Productive", "Distraction"]:
+                # 2. Log to database
+                data_manager.log_ai_feedback(report_title, ev_report)
+                sg.popup(f"Feedback saved for '{report_title}'!\nRun ai_trainer.py to update the model.", title="Success")
+
 
 # --- Cleanup ---
 # Once the loop breaks, close the window.

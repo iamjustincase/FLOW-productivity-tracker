@@ -26,6 +26,15 @@ def init_database():
     )
     ''')
 
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS ai_feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        window_title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        timestamp DATETIME NOT NULL
+    )
+    ''')
+
     conn.commit()
     conn.close()
     print(f"Database '{DB_FILE}' initialized.")
@@ -48,3 +57,32 @@ def log_event(category, app_name):
 
     conn.commit()
     conn.close()
+
+def log_ai_feedback(window_title, category):
+    """
+    Log user correction for AI misclassification.
+    """
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    timestamp = datetime.now()
+
+    cursor.execute('''
+    INSERT INTO ai_feedback (window_title, category, timestamp)
+    VALUES (?, ?, ?)
+    ''', (window_title, category, timestamp))
+
+    conn.commit()
+    conn.close()
+
+def get_ai_feedback():
+    """
+    Retrieve all user feedback for re-training.
+    """
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT window_title, category FROM ai_feedback')
+    feedback = cursor.fetchall()
+    
+    conn.close()
+    return feedback

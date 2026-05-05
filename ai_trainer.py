@@ -6,9 +6,11 @@ import numpy as np # To calculate the average/std of scores
 
 # --- sklearn Imports ---
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score # To test the model
+from data_manager import get_ai_feedback # Import feedback function
+import os
 
 print("Starting AI model training...")
 
@@ -41,20 +43,31 @@ train_data = [
     ("Reading documentation on MDN", 1),
     ("How to use Figma - UI/UX Design", 1),
     ("Linear Algebra: Vector Spaces", 1),
-    ("*dsa - Notepad", 1),
-    ("*heapsort algorithm - Notepad", 1),
-    ("binary search tree implementation", 1),
-    ("Operating Systems: Processes vs Threads", 1),
-    ("neural networks explained", 1),
-    ("What is REST API?", 1),
-    ("ECE project ideas", 1),
-    ("Computer Networks lecture", 1),
-    ("Google Gemini - Google Chrome", 1),
-    ("Understanding Kubernetes and Docker", 1),
-    ("*bellman ford algorithm testing - Notepad", 1),
-    ("*alakh pandey lecture - Notepad", 1),
-    ("*sanchit kumar dbms lectures - Notepad", 1),
     ("*big algorithm - Notepad", 1),
+    ("Notepad - engineering notes", 1),
+    ("Notepad - math homework", 1),
+    ("Notepad - python code snippet", 1),
+    ("circuit analysis - Notepad", 1),
+    ("study schedule - Notepad", 1),
+    ("project requirements.txt - Notepad", 1),
+    ("*parseval - Notepad", 1),
+    ("*fourier series - Notepad", 1),
+    ("*laplace transform - Notepad", 1),
+    ("*maxwell equations - Notepad", 1),
+    ("*quantum mechanics - Notepad", 1),
+    ("*organic chemistry - Notepad", 1),
+    ("*microprocessors - Notepad", 1),
+    ("*data structures - Notepad", 1),
+    ("Python tutorial video", 1),
+    ("Machine learning lecture", 1),
+    ("DBMS full course", 1),
+    ("DSA tips and tricks", 1),
+    ("Calculus tutorial", 1),
+    ("Physics Wallah - Motion lecture", 1),
+    ("Unacademy - UPSC course", 1),
+
+
+
 
     # --- Distraction (0) ---
     ("Top 10 funny cat videos", 0),
@@ -90,8 +103,6 @@ train_data = [
     ("Shopping for new shoes", 0),
     ("FC 24 Ultimate Team", 0),
     ("Elden Ring boss fight no-hit run", 0),
-    ("Untitled - Notepad", 0),
-    ("Search", 0),
     ("*elden - Notepad", 0),
     ("*clash of clans - Notepad", 0),
     ("*clash of clans base alignment - Notepad", 0),
@@ -99,8 +110,94 @@ train_data = [
     ("Amazon.in : dumbell set - Google Chrome", 0),
     ("Amazon.in Shopping Cart - Google Chrome", 0),
     ("WhatsApp", 0),
-    ("*alakh pandey lectures - Notepad", 0), # 'lectures' (plural) could be a playlist
+    ("*movies to watch - Notepad", 0),
+    ("*games to play - Notepad", 0),
+    ("*sexy videos - Notepad", 0),
+    ("*porn - Notepad", 0),
+    ("*sexy - Notepad", 0),
+    ("*love letter - Notepad", 0),
+    ("*shopping list - Notepad", 0),
+    ("*random stuff - Notepad", 0),
+    ("*chat - Notepad", 0),
+    ("*social media links - Notepad", 0),
+    ("sexy", 0),
+    ("porn", 0),
+    ("hot girls", 0),
+    ("nude", 0),
+    ("adult", 0),
+    ("dating", 0),
+    ("tinder", 0),
+    ("instagram", 0),
+    ("facebook", 0),
+    ("youtube shorts", 0),
+    ("tik tok", 0),
+    ("reels", 0),
+    ("adult videos", 0),
+    ("pornography", 0),
+    ("xxx videos", 0),
+
+    # --- Neutral (2) ---
+    ("Untitled - Notepad", 2),
+    ("Notepad", 2),
+    ("New Tab", 2),
+    ("Settings", 2),
+    ("Control Panel", 2),
+    ("Calculator", 2),
+    ("File Explorer", 2),
+    ("My Computer", 2),
+    ("Desktop", 2),
+    ("Downloads", 2),
+    ("Recycle Bin", 2),
+    ("* - Notepad", 2),
+    ("*a - Notepad", 2),
+    ("*ad - Notepad", 2),
+    ("*cat - Notepad", 2),
+    ("*i - Notepad", 2),
+    ("*p - Notepad", 2),
+    ("*v - Notepad", 2),
+    ("Google Search", 2),
+    ("Search", 2),
 ]
+
+# --- 1b. Load User Feedback ---
+print("Checking for user feedback in database...")
+try:
+    feedback_data = get_ai_feedback()
+    if feedback_data:
+        print(f"Adding {len(feedback_data)} pieces of user feedback to training set.")
+        for title, cat_str in feedback_data:
+            # Map "Productive" -> 1, "Distraction" -> 0, "Neutral" -> 2
+            if cat_str == "Productive": label = 1
+            elif cat_str == "Distraction": label = 0
+            else: label = 2
+            train_data.append((title, label))
+    else:
+        print("No user feedback found yet.")
+except Exception as e:
+    print(f"Could not load feedback: {e}")
+
+# --- 1c. Add specific edge cases for 'alakh pandey' etc.
+train_data.extend([
+    ("alakh pandey physics lectures", 1),
+    ("physics wallah alakh pandey", 1),
+    ("alakh pandey chemistry", 1),
+    ("coding ninja tutorials", 1),
+    ("whiteboard coding practice", 1),
+    ("LeetCode - Problem Solving", 1),
+    ("YouTube - MrBeast burger", 0),
+    ("Minecraft parkour", 0),
+    ("Roblox gameplay", 0),
+    ("adult videos porn", 0),
+    ("porn videos", 0),
+    ("sexy adult clips", 0),
+    ("Minecraft hardcore tutorial", 0),
+    ("Minecraft lecture", 0),
+    ("COD tips and tricks", 0),
+    ("Valo gameplay hacks", 0),
+    ("Cooking tutorial", 0),
+    ("Movie recap video", 0),
+    ("GTA 5 funny moments", 0),
+])
 
 # --- 2. Core Logic: Data Preparation ---
 # Separate the data into titles (X) and labels (y)
@@ -108,10 +205,10 @@ X = [item[0] for item in train_data]
 y = [item[1] for item in train_data]
 
 # --- 3. Core Logic: Model Creation ---
-# This is the same pipeline as before.
+# Word-level features are better for meaning.
 model = make_pipeline(
-    TfidfVectorizer(),
-    MultinomialNB()
+    TfidfVectorizer(analyzer='word', ngram_range=(1, 3)),
+    LinearSVC(dual=False)
 )
 
 # --- 4. Core Logic: Cross-Validation Test ---
