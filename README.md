@@ -4,12 +4,22 @@
 ![Version](https://img.shields.io/badge/Version-v1.8.2-blue)
 ![Python](https://img.shields.io/badge/Python-3.12-yellow)
 
-FLOW is a desktop productivity tracker built in Python that monitors active window titles and processes to classify user activity as "Productive", "Distracting", or "Neutral". It features a real-time dashboard, a daily focus score, and an AI-powered classification engine.
+FLOW is a desktop productivity tracker built in Python that monitors active window titles and processes to classify user activity as **Productive**, **Distracting**, or **Neutral**. It features a real-time dashboard, a daily focus score, and an AI-powered classification engine.
 
-## Demo & Screenshots
+## Demo 
+(*Click the image below to watch the demo video.*)
 
 [![Watch the Demo](https://img.youtube.com/vi/vXpPmesqkN8/0.jpg)](https://youtu.be/vXpPmesqkN8)
-*Click the image above to watch the demo video.*
+
+## Features
+
+*   **Real-time Dashboard**: View your current status and daily stats instantly.
+*   **AI-Powered Classification**: Uses a Naive Bayes classifier to detect productive apps even without manual rules.
+*   **Study Mode & Smart Prompts**: Enforce focus during lectures. Detects lecture videos and prompts you to enter Study Mode.
+*   **Daily Focus Score**: dynamic score based on your activity ratio and remaining time.
+*   **Multi-threaded Architecture**: Ensures the UI never freezes, even during heavy data processing.
+
+## Screenshots
 
 ### Dashboard
 ![Dashboard](assets/screenshots/1.png)
@@ -22,14 +32,6 @@ FLOW is a desktop productivity tracker built in Python that monitors active wind
 
 ### Study Mode Prompt
 ![Study Mode](assets/screenshots/5%20-%20studymode%20prompt%20productive.png)
-
-## Features
-
-*   **Real-time Dashboard**: View your current status and daily stats instantly.
-*   **AI-Powered Classification**: Uses a Naive Bayes classifier to detect productive apps even without manual rules.
-*   **Study Mode & Smart Prompts**: Enforce focus during lectures. Detects lecture videos and prompts you to enter Study Mode.
-*   **Daily Focus Score**: dynamic score based on your activity ratio and remaining time.
-*   **Multi-threaded Architecture**: Ensures the UI never freezes, even during heavy data processing.
 
 ## Installation
 
@@ -62,6 +64,7 @@ FLOW is a desktop productivity tracker built in Python that monitors active wind
     *   Detects gaze direction (looking away).
     *   Detects phone usage.
 *   **AI Libraries**: Integration of **OpenCV** and **MediaPipe**.
+*   Webcam-based features will be strictly opt-in and processed locally for privacy.
 
 ## Technical Architecture
 
@@ -79,3 +82,7 @@ The application uses a **Tiered Multi-Threaded Architecture**:
 *   `config_manager.py`: Configuration management.
 *   `assets/`: Icons and resources.
 *   `docs/`: Project analysis and reports.
+
+## License
+This project is licensed under the MIT License.
+
