@@ -1,24 +1,28 @@
-# Ignore the virtual environment (thousands of useless files)
+# Virtual environments
 venv/
 env/
+FLOW_V1/venv/
+FLOW_V2/venv/
+
+# Python cache files
 __pycache__/
 *.pyc
+FLOW_V1/__pycache__/
+FLOW_V2/__pycache__/
 
-# Ignore the compiled .exe folders (too big for code storage)
+# Build / packaged files
 build/
 dist/
 *.spec
 MAIN PACKAGED APP/
 
-# Ignore the database (contains your personal logs)
+# Databases
 *.db
 flow_data.db
 
-# Ignore editor settings
+# Editor settings
 .vscode/
 .idea/
 
+# Videos
 *.mp4
-
-# Ignore local config
-config.json
